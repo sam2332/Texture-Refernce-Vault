@@ -233,6 +233,9 @@
             <p class="text-muted">Welcome back, {{ current_user.username }}!</p>
         </div>
         <div class="col-auto">
+            <a href="{{ url_for('collections.discover_collections') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-compass me-2"></i>Discover Collections
+            </a>
             <a href="{{ url_for('collections.create_collection') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>New Collection
             </a>
@@ -440,7 +443,7 @@
 
     <!-- Collections Grid -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Your Collections</h3>
+        <h3>{% if current_user.is_admin %}My Collections{% else %}Your Collections{% endif %}</h3>
         <div class="btn-group" role="group">
             <button type="button" class="btn btn-outline-secondary active" onclick="toggleView('grid')">
                 <i class="fas fa-th"></i>
@@ -455,7 +458,18 @@
         {% for collection in collections %}
         <div class="collection-card">
             <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 class="card-title mb-0">{{ collection.name }}</h5>
+                <div class="flex-grow-1">
+                    <h5 class="card-title mb-1">{{ collection.name }}</h5>
+                    {% if collection.is_public %}
+                    <span class="badge bg-success">
+                        <i class="fas fa-globe me-1"></i>Public
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">
+                        <i class="fas fa-lock me-1"></i>Private
+                    </span>
+                    {% endif %}
+                </div>
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
                         <i class="fas fa-ellipsis-v"></i>
@@ -494,7 +508,7 @@
                 </div>
                 <div class="col">
                     <small class="text-muted">Owner</small>
-                    <div class="fw-bold">{{ collection.creator.username }}</div>
+                    <div class="fw-bold">{{ collection.creator.username if collection.creator else 'Unowned' }}</div>
                 </div>
             </div>
             
@@ -514,6 +528,7 @@
                     <tr>
                         <th>Name</th>
                         <th>Description</th>
+                        <th>Status</th>
                         <th>Images</th>
                         <th>Owner</th>
                         <th>Created</th>
@@ -525,8 +540,19 @@
                     <tr>
                         <td><strong>{{ collection.name }}</strong></td>
                         <td>{{ collection.description[:50] }}...</td>
+                        <td>
+                            {% if collection.is_public %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-globe me-1"></i>Public
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-lock me-1"></i>Private
+                            </span>
+                            {% endif %}
+                        </td>
                         <td><span class="badge bg-primary">{{ collection.images|length }}</span></td>
-                        <td>{{ collection.creator.username }}</td>
+                        <td>{{ collection.creator.username if collection.creator else 'Unowned' }}</td>
                         <td>{{ collection.created_at.strftime('%m/%d/%Y') }}</td>
                         <td>
                             <a href="{{ url_for('collections.view_collection', id=collection.id) }}" class="btn btn-sm btn-outline-primary">
@@ -549,10 +575,15 @@
     <div class="text-center py-5">
         <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
         <h4>No Collections Yet</h4>
-        <p class="text-muted">Create your first collection to start organizing your texture references.</p>
-        <a href="{{ url_for('collections.create_collection') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Create Collection
-        </a>
+        <p class="text-muted">Create your first collection or discover public collections to get started.</p>
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('collections.create_collection') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create Collection
+            </a>
+            <a href="{{ url_for('collections.discover_collections') }}" class="btn btn-outline-primary">
+                <i class="fas fa-compass me-2"></i>Discover Collections
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>
@@ -696,6 +727,17 @@ document.addEventListener('DOMContentLoaded', function() {
             dismissInvitationBanner();
         }, 100);
     }
+    
+    // Handle join collection forms
+    const joinForms = document.querySelectorAll('form[action*="/join"]');
+    joinForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const collectionName = this.closest('.collection-card').querySelector('.card-title').textContent;
+            if (!confirm(`Are you sure you want to join "${collectionName}"? You will be added with read access.`)) {
+                e.preventDefault();
+            }
+        });
+    });
 });
 </script>
 {% endblock %}

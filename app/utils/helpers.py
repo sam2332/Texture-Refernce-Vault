@@ -19,7 +19,7 @@ def has_collection_permission(user, collection, required_level='read'):
     """Check if user has required permission level for collection"""
     if user.is_admin:
         return True
-    if collection.created_by == user.id:
+    if collection.created_by and collection.created_by == user.id:
         return True
     
     permission = CollectionPermission.query.filter_by(

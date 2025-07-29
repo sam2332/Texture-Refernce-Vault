@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .discover-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 40px;
+        margin-bottom: 30px;
+        color: white;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .discover-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: shimmer 4s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+        0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        50% { transform: translateX(0%) translateY(0%) rotate(45deg); }
+    }
+    
+    .discover-hero-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .discovery-stats {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 20px;
+        display: inline-block;
+    }
+    
+    .collection-discovery-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .collection-discovery-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .collection-discovery-card.public {
+        border-left-color: #28a745;
+    }
+    
+    .collection-discovery-card.unowned {
+        border-left-color: #ffc107;
+    }
+    
+    .discovery-section {
+        margin-bottom: 40px;
+    }
+    
+    .discovery-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .discovery-filters {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .filter-tag {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 20px;
+        padding: 5px 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+    
+    .filter-tag:hover, .filter-tag.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+</style>
+
+<div class="main-content">
+    <!-- Hero Section -->
+    <div class="discover-hero">
+        <div class="discover-hero-content">
+            <h1><i class="fas fa-compass me-3"></i>Discover Collections</h1>
+            <p class="lead mb-0">Explore public collections and claim ownership of unowned ones</p>
+            
+            <div class="discovery-stats">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h4 class="mb-1">{{ total_collections }}</h4>
+                        <small>Total Collections</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="mb-1">{{ total_public }}</h4>
+                        <small>Public Collections</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="mb-1">{{ unowned_collections|length }}</h4>
+                        <small>Public Unowned</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Discover Collections</li>
+            </ol>
+        </nav>
+        
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active" onclick="showSection('all')">
+                <i class="fas fa-globe me-1"></i>All
+            </button>
+            <button type="button" class="btn btn-outline-success" onclick="showSection('public')">
+                <i class="fas fa-unlock me-1"></i>Public
+            </button>
+            <button type="button" class="btn btn-outline-warning" onclick="showSection('unowned')">
+                <i class="fas fa-user-slash me-1"></i>Public Unowned
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="discovery-filters">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <label for="search" class="form-label mb-2">Search Collections</label>
+                <input type="text" class="form-control" id="search" placeholder="Search by name or description..." onkeyup="filterCollections()">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label mb-2">Sort By</label>
+                <select class="form-select" id="sortBy" onchange="sortCollections()">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="name">Name A-Z</option>
+                    <option value="images">Most Images</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Public Collections Section -->
+    <div class="discovery-section" id="public-section">
+        <div class="discovery-section-header">
+            <h3><i class="fas fa-globe me-2 text-success"></i>Public Collections</h3>
+            <span class="badge bg-success">{{ public_collections|length }} available</span>
+        </div>
+        
+        {% if public_collections %}
+        <div class="row" id="public-collections">
+            {% for collection in public_collections %}
+            <div class="col-md-6 col-lg-4 mb-3 collection-item" data-name="{{ collection.name.lower() }}" data-description="{{ collection.description.lower() if collection.description else '' }}" data-created="{{ collection.created_at.timestamp() }}" data-images="{{ collection.images|length }}">
+                <div class="collection-discovery-card public">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">{{ collection.name }}</h5>
+                            <span class="badge bg-success mb-2">
+                                <i class="fas fa-globe me-1"></i>Public
+                            </span>
+                        </div>
+                        <form method="POST" action="{{ url_for('collections.join_collection', id=collection.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-success btn-sm" title="Join this public collection">
+                                <i class="fas fa-sign-in-alt me-1"></i>Join
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <p class="text-muted small mb-3">
+                        {{ collection.description[:120] if collection.description else 'No description available' }}
+                        {% if collection.description and collection.description|length > 120 %}...{% endif %}
+                    </p>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <small class="text-muted">Images</small>
+                            <div class="fw-bold">{{ collection.images|length }}</div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Created</small>
+                            <div class="fw-bold">{{ collection.created_at.strftime('%m/%d/%y') }}</div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Owner</small>
+                            <div class="fw-bold">{{ collection.creator.username if collection.creator else 'Unowned' }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            You will join with read access
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-globe"></i>
+            <h4>No Public Collections Available</h4>
+            <p>All public collections are already in your library, or there are no public collections yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Unowned Collections Section -->
+    <div class="discovery-section" id="unowned-section">
+        <div class="discovery-section-header">
+            <h3><i class="fas fa-user-slash me-2 text-warning"></i>Public Unowned Collections</h3>
+            <span class="badge bg-warning text-dark">{{ unowned_collections|length }} available</span>
+        </div>
+        
+        {% if unowned_collections %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Unowned Collections:</strong> These public collections have no current owner. You can claim ownership by joining them.
+        </div>
+        
+        <div class="row" id="unowned-collections">
+            {% for collection in unowned_collections %}
+            <div class="col-md-6 col-lg-4 mb-3 collection-item" data-name="{{ collection.name.lower() }}" data-description="{{ collection.description.lower() if collection.description else '' }}" data-created="{{ collection.created_at.timestamp() }}" data-images="{{ collection.images|length }}">
+                <div class="collection-discovery-card unowned">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">{{ collection.name }}</h5>
+                            <div class="mb-2">
+                                <span class="badge bg-success me-1">
+                                    <i class="fas fa-globe me-1"></i>Public
+                                </span>
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-user-slash me-1"></i>Unowned
+                                </span>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ url_for('collections.join_collection', id=collection.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-warning btn-sm" title="Join and claim this collection">
+                                <i class="fas fa-crown me-1"></i>Join & Claim
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <p class="text-muted small mb-3">
+                        {{ collection.description[:120] if collection.description else 'No description available' }}
+                        {% if collection.description and collection.description|length > 120 %}...{% endif %}
+                    </p>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <small class="text-muted">Images</small>
+                            <div class="fw-bold">{{ collection.images|length }}</div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Created</small>
+                            <div class="fw-bold">{{ collection.created_at.strftime('%m/%d/%y') }}</div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Status</small>
+                            <div class="fw-bold text-warning">No Owner</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-crown me-1"></i>
+                            Join to claim ownership and become the new owner
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <h4>No Public Unowned Collections</h4>
+            <p>All public collections currently have owners. Check back later for collections that might become available.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('collections.create_collection') }}" class="btn btn-primary btn-lg me-3">
+            <i class="fas fa-plus me-2"></i>Create New Collection
+        </a>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+// Section filtering
+function showSection(section) {
+    const publicSection = document.getElementById('public-section');
+    const unownedSection = document.getElementById('unowned-section');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    
+    // Reset button states
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    if (section === 'all') {
+        publicSection.style.display = 'block';
+        unownedSection.style.display = 'block';
+        buttons[0].classList.add('active');
+    } else if (section === 'public') {
+        publicSection.style.display = 'block';
+        unownedSection.style.display = 'none';
+        buttons[1].classList.add('active');
+    } else if (section === 'unowned') {
+        publicSection.style.display = 'none';
+        unownedSection.style.display = 'block';
+        buttons[2].classList.add('active');
+    }
+}
+
+// Search filtering
+function filterCollections() {
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    const collections = document.querySelectorAll('.collection-item');
+    
+    collections.forEach(collection => {
+        const name = collection.dataset.name;
+        const description = collection.dataset.description;
+        
+        if (name.includes(searchTerm) || description.includes(searchTerm)) {
+            collection.style.display = 'block';
+        } else {
+            collection.style.display = 'none';
+        }
+    });
+}
+
+// Sort collections
+function sortCollections() {
+    const sortBy = document.getElementById('sortBy').value;
+    const publicContainer = document.getElementById('public-collections');
+    const unownedContainer = document.getElementById('unowned-collections');
+    
+    [publicContainer, unownedContainer].forEach(container => {
+        if (!container) return;
+        
+        const collections = Array.from(container.querySelectorAll('.collection-item'));
+        
+        collections.sort((a, b) => {
+            switch (sortBy) {
+                case 'newest':
+                    return parseFloat(b.dataset.created) - parseFloat(a.dataset.created);
+                case 'oldest':
+                    return parseFloat(a.dataset.created) - parseFloat(b.dataset.created);
+                case 'name':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                case 'images':
+                    return parseInt(b.dataset.images) - parseInt(a.dataset.images);
+                default:
+                    return 0;
+            }
+        });
+        
+        // Re-append sorted collections
+        collections.forEach(collection => container.appendChild(collection));
+    });
+}
+
+// Handle join collection forms with confirmation
+document.addEventListener('DOMContentLoaded', function() {
+    const joinForms = document.querySelectorAll('form[action*="/join"]');
+    joinForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const collectionName = this.closest('.collection-discovery-card').querySelector('.card-title').textContent;
+            const isUnowned = this.closest('.collection-discovery-card').classList.contains('unowned');
+            
+            let message = `Are you sure you want to join "${collectionName}"?`;
+            if (isUnowned) {
+                message += ' You will be able to claim ownership after joining.';
+            } else {
+                message += ' You will be added with read access.';
+            }
+            
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

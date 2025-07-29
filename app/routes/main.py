@@ -29,7 +29,13 @@ def dashboard():
     
     # Get collections user has access to
     if current_user.is_admin:
-        collections = Collection.query.all()
+        # For admins, get collections they're members of
+        created_collections = Collection.query.filter_by(created_by=current_user.id).all()
+        permitted_collection_ids = [p.collection_id for p in current_user.collection_permissions]
+        permitted_collections = Collection.query.filter(Collection.id.in_(permitted_collection_ids)).all()
+        member_collections = list(set(created_collections + permitted_collections))
+        
+        collections = member_collections
         user_count = User.query.count()
         
         # Calculate stats for admin (all images)
