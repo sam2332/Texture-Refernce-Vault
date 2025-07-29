@@ -6,6 +6,7 @@ from .. import db
 from ..models.user import User
 from ..models.collection import Collection
 from ..models.image import TextureImage, ImageVersion
+from ..models.invitation import CollectionInvitation
 
 main_bp = Blueprint('main', __name__)
 
@@ -18,6 +19,14 @@ def index():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
+    # Get pending invitations for current user
+    pending_invitations = CollectionInvitation.query.filter_by(
+        email=current_user.email.lower(),
+        accepted_at=None
+    ).filter(
+        CollectionInvitation.expires_at > datetime.utcnow()
+    ).all()
+    
     # Get collections user has access to
     if current_user.is_admin:
         collections = Collection.query.all()
@@ -78,12 +87,10 @@ def dashboard():
                          total_images=total_images,
                          recent_uploads=recent_uploads,
                          recent_images=recent_images,
-                         recently_updated=recently_updated)
+                         recently_updated=recently_updated,
+                         pending_invitations=pending_invitations)
 
-@main_bp.route('/collections')
-@login_required
-def collections():
-    return redirect(url_for('main.dashboard'))
+
 
 @main_bp.route('/admin')
 @login_required

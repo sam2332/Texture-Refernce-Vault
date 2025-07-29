@@ -125,6 +125,105 @@
             height: 150px;
         }
     }
+    
+    /* Invitation Banner Styles */
+    .invitation-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        color: white;
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .invitation-banner::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: shimmer 3s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+        0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        50% { transform: translateX(0%) translateY(0%) rotate(45deg); }
+    }
+    
+    .invitation-banner-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .invitation-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .invitation-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .invitation-card:last-child {
+        margin-bottom: 0;
+    }
+    
+    .invitation-meta {
+        font-size: 0.85rem;
+        opacity: 0.9;
+        margin-top: 8px;
+    }
+    
+    .invitation-actions {
+        margin-top: 15px;
+    }
+    
+    .btn-invitation-accept {
+        background: rgba(40, 167, 69, 0.9);
+        border: 1px solid rgba(40, 167, 69, 0.3);
+        color: white;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-invitation-accept:hover {
+        background: rgba(40, 167, 69, 1);
+        border-color: rgba(40, 167, 69, 0.5);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+    
+    .invitation-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        z-index: 3;
+    }
+    
+    .invitation-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
 </style>
 
 <div class="main-content">
@@ -139,6 +238,75 @@
             </a>
         </div>
     </div>
+
+    <!-- Invitation Banner -->
+    {% if pending_invitations %}
+    <div class="invitation-banner" id="invitation-banner">
+        <button class="invitation-close" onclick="dismissInvitationBanner()" title="Dismiss">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="invitation-banner-content">
+            <div class="d-flex align-items-center mb-3">
+                <div class="me-3">
+                    <i class="fas fa-envelope-open fa-2x"></i>
+                </div>
+                <div>
+                    <h4 class="mb-1">
+                        🎉 You have {{ pending_invitations|length }} pending invitation{{ 's' if pending_invitations|length != 1 else '' }}!
+                    </h4>
+                    <p class="mb-0 opacity-75">
+                        You've been invited to join some amazing collections. Accept now to start exploring!
+                    </p>
+                </div>
+            </div>
+            
+            {% for invitation in pending_invitations %}
+            <div class="invitation-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">
+                            <i class="fas fa-folder me-2"></i>
+                            {{ invitation.collection.name }}
+                        </h6>
+                        <p class="mb-0 opacity-90">
+                            {{ invitation.collection.description[:100] }}{{ '...' if invitation.collection.description|length > 100 else '' }}
+                        </p>
+                        <div class="invitation-meta">
+                            <span class="me-3">
+                                <i class="fas fa-user me-1"></i>
+                                Invited by {{ invitation.inviter.username }}
+                            </span>
+                            <span class="me-3">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                {{ invitation.permission_level.title() }} access
+                            </span>
+                            <span>
+                                <i class="fas fa-clock me-1"></i>
+                                Expires {{ invitation.expires_at.strftime('%m/%d/%Y') }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="invitation-actions ms-3">
+                        <a href="{{ url_for('collections.accept_invitation', token=invitation.token) }}" 
+                           class="btn btn-invitation-accept btn-sm">
+                            <i class="fas fa-check me-1"></i>Accept
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if pending_invitations|length > 1 %}
+            <div class="text-center mt-3">
+                <small class="opacity-75">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Click on any invitation to accept it and join the collection
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Statistics Cards -->
     <div class="row mb-5">
@@ -501,6 +669,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }, 5000);
+});
+
+// Invitation banner functionality
+function dismissInvitationBanner() {
+    const banner = document.getElementById('invitation-banner');
+    if (banner) {
+        banner.style.transition = 'all 0.3s ease';
+        banner.style.transform = 'translateY(-20px)';
+        banner.style.opacity = '0';
+        setTimeout(() => {
+            banner.remove();
+        }, 300);
+        
+        // Store dismissal in localStorage to remember user preference
+        localStorage.setItem('invitationBannerDismissed', 'true');
+    }
+}
+
+// Check if banner was previously dismissed
+document.addEventListener('DOMContentLoaded', function() {
+    const banner = document.getElementById('invitation-banner');
+    if (banner && localStorage.getItem('invitationBannerDismissed') === 'true') {
+        // Auto-dismiss if user previously dismissed it
+        setTimeout(() => {
+            dismissInvitationBanner();
+        }, 100);
+    }
 });
 </script>
 {% endblock %}
