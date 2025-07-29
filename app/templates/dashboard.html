@@ -1,6 +1,132 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    /* Slideshow Styles */
+    .slideshow-container {
+        position: relative;
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    
+    .slideshow-wrapper {
+        overflow: hidden;
+        border-radius: 10px;
+    }
+    
+    .slideshow-track {
+        display: flex;
+        transition: transform 0.5s ease;
+        gap: 15px;
+    }
+    
+    .slide-item {
+        flex: 0 0 300px;
+        height: 200px;
+    }
+    
+    .slide-image-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .slide-image-container:hover {
+        transform: scale(1.05);
+    }
+    
+    .slide-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: filter 0.3s ease;
+    }
+    
+    .slide-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        color: white;
+        padding: 20px 15px 15px;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .slide-image-container:hover .slide-overlay {
+        transform: translateY(0);
+    }
+    
+    .slide-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .slide-collection {
+        font-size: 0.8rem;
+        opacity: 0.9;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .slide-date {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+    
+    .slideshow-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.5);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 10;
+    }
+    
+    .slideshow-btn:hover {
+        background: rgba(0,0,0,0.8);
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .slideshow-btn-prev {
+        left: 10px;
+    }
+    
+    .slideshow-btn-next {
+        right: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .slide-item {
+            flex: 0 0 250px;
+            height: 150px;
+        }
+    }
+</style>
+
 <div class="main-content">
     <div class="row align-items-center mb-4">
         <div class="col">
@@ -24,29 +150,13 @@
         </div>
         <div class="col-md-3 mb-3">
             <div class="stats-card">
-                <div class="stats-number">
-                    {% set total_images = 0 %}
-                    {% for collection in collections %}
-                        {% set total_images = total_images + collection.images|length %}
-                    {% endfor %}
-                    {{ total_images }}
-                </div>
+                <div class="stats-number">{{ total_images }}</div>
                 <div>Total Images</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
             <div class="stats-card">
-                <div class="stats-number">
-                    {% set recent_count = 0 %}
-                    {% for collection in collections %}
-                        {% for image in collection.images %}
-                            {% if (current_time - image.created_at).days < 7 %}
-                                {% set recent_count = recent_count + 1 %}
-                            {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                    {{ recent_count }}
-                </div>
+                <div class="stats-number">{{ recent_uploads }}</div>
                 <div>Recent Uploads</div>
             </div>
         </div>
@@ -59,6 +169,106 @@
             </div>
         </div>
     </div>
+
+    <!-- Recent Images Slideshow -->
+    {% if recent_images or recently_updated %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3><i class="fas fa-clock me-2"></i>Recent Activity</h3>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary active" id="btn-recent-added" onclick="toggleSlideshow('added')">
+                        <i class="fas fa-plus me-1"></i>Recently Added
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="btn-recent-updated" onclick="toggleSlideshow('updated')">
+                        <i class="fas fa-edit me-1"></i>Recently Updated
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Recently Added Images Slideshow -->
+            <div id="slideshow-added" class="slideshow-container">
+                {% if recent_images %}
+                <div class="slideshow-wrapper">
+                    <div class="slideshow-track" id="track-added">
+                        {% for image in recent_images %}
+                        <div class="slide-item">
+                            <a href="{{ url_for('images.view_image', id=image.id) }}" class="slide-image-container">
+                                <img src="{{ url_for('images.serve_image', id=image.id) }}" 
+                                     alt="{{ image.filename }}" 
+                                     class="slide-image">
+                                <div class="slide-overlay">
+                                    <div class="slide-info">
+                                        <h6 class="slide-title">{{ image.filename }}</h6>
+                                        <p class="slide-collection">{{ image.collection.name }}</p>
+                                        <small class="slide-date">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ image.created_at.strftime('%m/%d/%y') }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="slideshow-btn slideshow-btn-prev" onclick="moveSlide('added', -1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="slideshow-btn slideshow-btn-next" onclick="moveSlide('added', 1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-image fa-2x mb-2"></i>
+                    <p>No recently added images</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Recently Updated Images Slideshow -->
+            <div id="slideshow-updated" class="slideshow-container d-none">
+                {% if recently_updated %}
+                <div class="slideshow-wrapper">
+                    <div class="slideshow-track" id="track-updated">
+                        {% for image in recently_updated %}
+                        <div class="slide-item">
+                            <a href="{{ url_for('images.view_image', id=image.id) }}" class="slide-image-container">
+                                <img src="{{ url_for('images.serve_image', id=image.id) }}" 
+                                     alt="{{ image.filename }}" 
+                                     class="slide-image">
+                                <div class="slide-overlay">
+                                    <div class="slide-info">
+                                        <h6 class="slide-title">{{ image.filename }}</h6>
+                                        <p class="slide-collection">{{ image.collection.name }}</p>
+                                        <small class="slide-date">
+                                            <i class="fas fa-edit me-1"></i>
+                                            {% set current_version = image.versions|selectattr('is_current', 'equalto', true)|first %}
+                                            {{ current_version.uploaded_at.strftime('%m/%d/%y') if current_version else 'N/A' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="slideshow-btn slideshow-btn-prev" onclick="moveSlide('updated', -1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="slideshow-btn slideshow-btn-next" onclick="moveSlide('updated', 1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-image fa-2x mb-2"></i>
+                    <p>No recently updated images</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Collections Grid -->
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -180,6 +390,7 @@
 </div>
 
 <script>
+// View toggle functionality
 function toggleView(viewType) {
     const gridView = document.getElementById('collections-grid');
     const listView = document.getElementById('collections-list');
@@ -197,5 +408,99 @@ function toggleView(viewType) {
         buttons[1].classList.add('active');
     }
 }
+
+// Slideshow functionality
+let currentSlide = {
+    added: 0,
+    updated: 0
+};
+
+function toggleSlideshow(type) {
+    const addedBtn = document.getElementById('btn-recent-added');
+    const updatedBtn = document.getElementById('btn-recent-updated');
+    const addedSlideshow = document.getElementById('slideshow-added');
+    const updatedSlideshow = document.getElementById('slideshow-updated');
+    
+    // Remove active classes
+    addedBtn.classList.remove('active');
+    updatedBtn.classList.remove('active');
+    
+    if (type === 'added') {
+        addedBtn.classList.add('active');
+        addedSlideshow.classList.remove('d-none');
+        updatedSlideshow.classList.add('d-none');
+    } else {
+        updatedBtn.classList.add('active');
+        updatedSlideshow.classList.remove('d-none');
+        addedSlideshow.classList.add('d-none');
+    }
+}
+
+function moveSlide(type, direction) {
+    const track = document.getElementById(`track-${type}`);
+    const slides = track.querySelectorAll('.slide-item');
+    
+    if (slides.length === 0) return;
+    
+    // Calculate how many slides are visible
+    const containerWidth = track.parentElement.offsetWidth;
+    const slideWidth = 300 + 15; // slide width + gap
+    const visibleSlides = Math.floor(containerWidth / slideWidth);
+    const maxSlide = Math.max(0, slides.length - visibleSlides);
+    
+    // Update current slide position
+    currentSlide[type] += direction;
+    
+    // Keep within bounds
+    if (currentSlide[type] < 0) {
+        currentSlide[type] = 0;
+    } else if (currentSlide[type] > maxSlide) {
+        currentSlide[type] = maxSlide;
+    }
+    
+    // Apply transform
+    const offset = currentSlide[type] * slideWidth;
+    track.style.transform = `translateX(-${offset}px)`;
+}
+
+// Auto-resize slideshow on window resize
+window.addEventListener('resize', function() {
+    // Reset slide positions to prevent overflow
+    currentSlide.added = 0;
+    currentSlide.updated = 0;
+    
+    const tracks = document.querySelectorAll('.slideshow-track');
+    tracks.forEach(track => {
+        track.style.transform = 'translateX(0)';
+    });
+});
+
+// Initialize slideshow
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-play slideshow every 5 seconds
+    setInterval(() => {
+        const activeSlideshow = document.querySelector('.slideshow-container:not(.d-none)');
+        if (activeSlideshow) {
+            const type = activeSlideshow.id.includes('added') ? 'added' : 'updated';
+            const track = document.getElementById(`track-${type}`);
+            const slides = track.querySelectorAll('.slide-item');
+            
+            if (slides.length > 0) {
+                const containerWidth = track.parentElement.offsetWidth;
+                const slideWidth = 300 + 15;
+                const visibleSlides = Math.floor(containerWidth / slideWidth);
+                const maxSlide = Math.max(0, slides.length - visibleSlides);
+                
+                if (currentSlide[type] >= maxSlide) {
+                    // Reset to beginning
+                    currentSlide[type] = 0;
+                } else {
+                    // Move to next slide
+                    moveSlide(type, 1);
+                }
+            }
+        }
+    }, 5000);
+});
 </script>
 {% endblock %}

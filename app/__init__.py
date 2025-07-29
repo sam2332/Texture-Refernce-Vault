@@ -25,7 +25,7 @@ def create_app(config_name='default'):
     login_manager.login_view = 'auth.login'
     
     # Import models to ensure they are registered
-    from app.models import User, Collection, CollectionPermission, TextureImage, ImageVersion
+    from app.models import User, Collection, CollectionPermission, TextureImage, ImageVersion, CollectionInvitation
     
     # User loader for Flask-Login
     @login_manager.user_loader
