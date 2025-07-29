@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-content">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <div>
+                    <h1><i class="fas fa-user me-2"></i>My Profile</h1>
+                    <p class="text-muted mb-0">Manage your account settings</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Account Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Username:</strong></td>
+                                    <td>{{ current_user.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ current_user.email }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Role:</strong></td>
+                                    <td>
+                                        {% if current_user.is_admin %}
+                                        <span class="badge bg-danger">Administrator</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">User</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Member Since:</strong></td>
+                                    <td>{{ current_user.created_at.strftime('%B %d, %Y') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Activity Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <h3 class="text-primary">{{ current_user.created_collections|length }}</h3>
+                                    <small class="text-muted">Collections Created</small>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <h3 class="text-success">{{ current_user.uploaded_images|length }}</h3>
+                                    <small class="text-muted">Images Uploaded</small>
+                                </div>
+                                <div class="col-6">
+                                    <h3 class="text-warning">{{ current_user.collection_permissions|length }}</h3>
+                                    <small class="text-muted">Shared Collections</small>
+                                </div>
+                                <div class="col-6">
+                                    <h3 class="text-info">
+                                        {% set total_versions = 0 %}
+                                        {% for image in current_user.uploaded_images %}
+                                            {% set total_versions = total_versions + image.versions|length %}
+                                        {% endfor %}
+                                        {{ total_versions }}
+                                    </h3>
+                                    <small class="text-muted">Versions Created</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Change Password</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('change_password') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-key me-2"></i>Update Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

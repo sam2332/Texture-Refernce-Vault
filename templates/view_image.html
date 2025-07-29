@@ -3,7 +3,7 @@
 {% block content %}
 <div class="main-content">
     <div class="d-flex align-items-center mb-4">
-        <a href="{{ url_for('collections.view_collection', id=collection.id) }}" class="btn btn-outline-secondary me-3">
+        <a href="{{ url_for('view_collection', id=collection.id) }}" class="btn btn-outline-secondary me-3">
             <i class="fas fa-arrow-left"></i>
         </a>
         <div class="flex-grow-1">
@@ -14,13 +14,8 @@
             </p>
         </div>
         <div class="btn-group">
-            {% if has_collection_permission(current_user, collection, 'write') %}
-            <a href="{{ url_for('images.edit_image', id=image.id) }}" class="btn btn-outline-primary">
-                <i class="fas fa-edit me-2"></i>Edit
-            </a>
-            {% endif %}
             {% if has_collection_permission(current_user, collection, 'write') and not image.is_published %}
-            <a href="{{ url_for('images.publish_image', id=image.id) }}" 
+            <a href="{{ url_for('publish_image', id=image.id) }}" 
                class="btn btn-success"
                onclick="return confirm('Publish this image to {{ image.original_filepath }}?')">
                 <i class="fas fa-upload me-2"></i>Publish
@@ -48,7 +43,7 @@
                 </div>
                 <div class="card-body text-center">
                     {% if image.current_filepath %}
-                    <img src="{{ url_for('images.serve_image', id=image.id) }}" 
+                    <img src="{{ url_for('uploaded_file', filename=image.current_filepath.split('/')[-1]) }}" 
                          alt="{{ image.filename }}" 
                          class="img-fluid image-preview"
                          style="max-height: 500px;">
@@ -68,7 +63,7 @@
                     <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Upload New Version</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('images.upload_version', id=image.id) }}" 
+                    <form method="POST" action="{{ url_for('upload_version', id=image.id) }}" 
                           enctype="multipart/form-data" id="versionForm">
                         <div class="upload-zone" onclick="document.getElementById('versionFile').click()">
                             <input type="file" id="versionFile" name="file" accept="image/*" style="display: none;">
@@ -137,7 +132,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td><strong>Publish Path:</strong></td>
+                            <td><strong>Original Path:</strong></td>
                             <td><code class="small">{{ image.original_filepath }}</code></td>
                         </tr>
                     </table>
@@ -168,15 +163,10 @@
                                     <small>{{ version.uploaded_at.strftime('%m/%d/%Y %H:%M') }}</small>
                                 </div>
                                 <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" 
-                                            data-bs-toggle="modal" data-bs-target="#versionModal"
-                                            data-version-id="{{ version.id }}"
-                                            data-version-number="{{ version.version_number }}"
-                                            data-uploader="{{ version.uploader.username }}"
-                                            data-upload-date="{{ version.uploaded_at.strftime('%m/%d/%Y %H:%M') }}"
-                                            title="View Version">
+                                    <a href="{{ url_for('uploaded_file', filename=version.filepath.split('/')[-1]) }}" 
+                                       class="btn btn-outline-primary btn-sm" target="_blank" title="View">
                                         <i class="fas fa-eye"></i>
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -191,112 +181,7 @@
     </div>
 </div>
 
-<!-- Version View Modal -->
-<div class="modal fade" id="versionModal" tabindex="-1" aria-labelledby="versionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="versionModalLabel">
-                    <i class="fas fa-history me-2"></i>
-                    <span id="modal-version-title">Version</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div id="modal-loading" class="py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-3 text-muted">Loading version...</p>
-                </div>
-                <div id="modal-content" class="d-none">
-                    <img id="modal-version-image" src="" alt="Version Preview" 
-                         class="img-fluid image-preview mb-3" style="max-height: 400px; border-radius: 10px;">
-                    <div class="row text-start">
-                        <div class="col-md-6">
-                            <strong>Uploaded by:</strong> <span id="modal-uploader"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Upload date:</strong> <span id="modal-upload-date"></span>
-                        </div>
-                    </div>
-                </div>
-                <div id="modal-error" class="d-none">
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error loading version preview.
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <a id="modal-download-link" href="#" class="btn btn-outline-primary" download>
-                    <i class="fas fa-download me-2"></i>Download
-                </a>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-// Handle version modal
-document.addEventListener('DOMContentLoaded', function() {
-    const versionModal = document.getElementById('versionModal');
-    const modalLoading = document.getElementById('modal-loading');
-    const modalContent = document.getElementById('modal-content');
-    const modalError = document.getElementById('modal-error');
-    const modalVersionImage = document.getElementById('modal-version-image');
-    const modalVersionTitle = document.getElementById('modal-version-title');
-    const modalUploader = document.getElementById('modal-uploader');
-    const modalUploadDate = document.getElementById('modal-upload-date');
-    const modalDownloadLink = document.getElementById('modal-download-link');
-    
-    // Handle modal show event
-    versionModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        const versionId = button.getAttribute('data-version-id');
-        const versionNumber = button.getAttribute('data-version-number');
-        const uploader = button.getAttribute('data-uploader');
-        const uploadDate = button.getAttribute('data-upload-date');
-        
-        // Update modal title and info
-        modalVersionTitle.textContent = `Version ${versionNumber}`;
-        modalUploader.textContent = uploader;
-        modalUploadDate.textContent = uploadDate;
-        
-        // Set download link
-        modalDownloadLink.href = `{{ url_for('images.serve_version', version_id=0) }}`.replace('/0/', `/${versionId}/`);
-        modalDownloadLink.download = `{{ image.filename }}_v${versionNumber}`;
-        
-        // Reset modal state
-        modalLoading.classList.remove('d-none');
-        modalContent.classList.add('d-none');
-        modalError.classList.add('d-none');
-        
-        // Load image
-        const imageUrl = `{{ url_for('images.serve_version', version_id=0) }}`.replace('/0/', `/${versionId}/`);
-        
-        modalVersionImage.onload = function() {
-            modalLoading.classList.add('d-none');
-            modalContent.classList.remove('d-none');
-        };
-        
-        modalVersionImage.onerror = function() {
-            modalLoading.classList.add('d-none');
-            modalError.classList.remove('d-none');
-        };
-        
-        modalVersionImage.src = imageUrl;
-    });
-    
-    // Clear image when modal is hidden
-    versionModal.addEventListener('hidden.bs.modal', function () {
-        modalVersionImage.src = '';
-    });
-});
-
 document.getElementById('versionFile').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
