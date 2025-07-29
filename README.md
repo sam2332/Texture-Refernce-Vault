@@ -54,7 +54,7 @@ A comprehensive Flask web application for managing texture reference collections
 
 5. **Run the application:**
    ```bash
-   python app.py
+   python run.py
    ```
 
 6. **Access the application:**
@@ -113,26 +113,118 @@ A comprehensive Flask web application for managing texture reference collections
 
 ```
 Texture Reference Vault/
-├── app.py                 # Main Flask application
-├── requirements.txt       # Python dependencies
-├── templates/            # HTML templates
-│   ├── base.html         # Base template with styling
-│   ├── index.html        # Landing page
-│   ├── login.html        # User login
-│   ├── register.html     # User registration
-│   ├── dashboard.html    # Main dashboard
-│   ├── create_collection.html
-│   ├── view_collection.html
-│   ├── edit_collection.html
-│   ├── upload_image.html
-│   ├── view_image.html   # Image details and version management
-│   ├── admin.html        # Admin panel
-│   ├── profile.html      # User profile
-│   └── manage_permissions.html
-├── static/               # Static assets
+├── run.py                 # Main Flask application entry point
+├── config.py             # Application configuration
+├── requirements.txt      # Python dependencies
+├── app/                  # Application package
+│   ├── __init__.py       # Flask app factory
+│   ├── models/           # Database models
+│   │   ├── user.py       # User model
+│   │   ├── collection.py # Collection models
+│   │   ├── image.py      # Image models
+│   │   └── invitation.py # Invitation models
+│   ├── routes/           # Route handlers (modular structure)
+│   │   ├── __init__.py   # Route registration system
+│   │   ├── auth/         # Authentication routes
+│   │   │   ├── login.py
+│   │   │   ├── register.py
+│   │   │   ├── logout.py
+│   │   │   ├── profile.py
+│   │   │   └── change_password.py
+│   │   ├── main/         # Main application routes
+│   │   │   ├── index.py
+│   │   │   ├── dashboard.py
+│   │   │   └── admin.py
+│   │   ├── collections/  # Collection management routes
+│   │   │   ├── create_collection.py
+│   │   │   ├── view_collection.py
+│   │   │   ├── edit_collection.py
+│   │   │   ├── delete_collection.py
+│   │   │   ├── manage_permissions.py
+│   │   │   ├── add_permission.py
+│   │   │   ├── remove_permission.py
+│   │   │   ├── invite_user.py
+│   │   │   ├── accept_invitation.py
+│   │   │   ├── accept_invitation_register.py
+│   │   │   ├── cancel_invitation.py
+│   │   │   ├── join_collection.py
+│   │   │   ├── leave_collection.py
+│   │   │   ├── claim_ownership.py
+│   │   │   ├── transfer_ownership.py
+│   │   │   └── discover_collections.py
+│   │   └── images/        # Image management routes
+│   │       ├── upload_image.py
+│   │       ├── view_image.py
+│   │       ├── edit_image.py
+│   │       ├── upload_version.py
+│   │       ├── publish_image.py
+│   │       ├── restore_version.py
+│   │       ├── serve_image.py
+│   │       └── serve_version.py
+│   ├── templates/        # HTML templates
+│   │   ├── base.html     # Base template with styling
+│   │   ├── index.html    # Landing page
+│   │   ├── login.html    # User login
+│   │   ├── register.html # User registration
+│   │   ├── dashboard.html # Main dashboard
+│   │   ├── create_collection.html
+│   │   ├── view_collection.html
+│   │   ├── edit_collection.html
+│   │   ├── upload_image.html
+│   │   ├── view_image.html # Image details and version management
+│   │   ├── admin.html    # Admin panel
+│   │   ├── profile.html  # User profile
+│   │   └── manage_permissions.html
+│   └── utils/            # Utility functions
+│       └── helpers.py    # Helper functions
+├── instance/             # Instance-specific files
+│   └── texture_vault.db  # SQLite database (created on first run)
 ├── uploads/              # User uploaded files
-└── texture_vault.db      # SQLite database (created on first run)
+└── static/               # Static assets (if any)
 ```
+
+## Architecture
+
+### Modular Route Structure
+
+This application uses a modular route architecture where each route is defined in its own file. This provides several benefits:
+
+- **Maintainability:** Each route is isolated in its own file, making it easier to find and modify specific functionality
+- **Scalability:** New routes can be added without modifying existing files
+- **Testing:** Individual routes can be tested in isolation
+- **Code Organization:** Related functionality is grouped together logically
+
+#### Route Registration System
+
+Each route file contains:
+1. The route handler function
+2. A `register_route(app)` function that registers the route with the Flask application
+
+Example route file structure:
+```python
+# app/routes/auth/login.py
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_user
+from ...models.user import User
+
+def login():
+    # Route handler logic here
+    pass
+
+def register_route(app):
+    """Register the login route with the Flask app"""
+    app.add_url_rule('/auth/login', 'auth.login', login, methods=['GET', 'POST'])
+```
+
+#### URL Structure
+
+The URL structure remains exactly the same as before:
+- Authentication routes: `/auth/*`
+- Collection routes: `/collection/*`
+- Image routes: `/image/*`
+- Main routes: `/`, `/dashboard`, `/admin`
+
+All `url_for()` calls continue to work with the same endpoint names (e.g., `url_for('auth.login')`, `url_for('collections.view_collection', id=1)`).
 
 ## Security Features
 
@@ -191,7 +283,48 @@ MAX_CONTENT_LENGTH=16777216  # 16MB in bytes
 
 ## Contributing
 
-This is a complete, production-ready Flask application with modern UI design and comprehensive functionality. The codebase is well-structured and follows Flask best practices.
+### Adding New Routes
+
+To add a new route to the application:
+
+1. **Create a new route file** in the appropriate subdirectory (e.g., `app/routes/auth/new_feature.py`)
+
+2. **Implement the route handler** and registration function:
+   ```python
+   from flask import render_template
+   from flask_login import login_required
+
+   @login_required
+   def new_feature():
+       return render_template('new_feature.html')
+
+   def register_route(app):
+       """Register the new_feature route with the Flask app"""
+       app.add_url_rule('/auth/new_feature', 'auth.new_feature', new_feature)
+   ```
+
+3. **Import and register** the new route in `app/routes/__init__.py`:
+   ```python
+   from .auth import new_feature as auth_new_feature
+
+   def register_all_routes(app):
+       # ... existing routes ...
+       auth_new_feature.register_route(app)
+   ```
+
+4. **Create the template** (if needed) in `app/templates/`
+
+5. **Test the route** by accessing it through the application
+
+### Development Guidelines
+
+This is a complete, production-ready Flask application with modern UI design and comprehensive functionality. The codebase is well-structured and follows Flask best practices:
+
+- Use type hints where appropriate
+- Include docstrings for complex functions
+- Follow the existing permission checking patterns
+- Use the database transaction patterns shown in existing routes
+- Maintain consistent error handling and user feedback
 
 ## License
 

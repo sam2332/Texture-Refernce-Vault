@@ -38,9 +38,9 @@ def create_app(config_name='default'):
     def utility_processor():
         return dict(has_collection_permission=has_collection_permission)
     
-    # Register blueprints
-    from app.routes import register_blueprints
-    register_blueprints(app)
+    # Register routes
+    from app.routes import register_routes
+    register_routes(app)
     
     # Create database tables
     with app.app_context():
