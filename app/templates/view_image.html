@@ -65,7 +65,7 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('images.upload_version', id=image.id) }}" 
                           enctype="multipart/form-data" id="versionForm">
-                        <div class="upload-zone" onclick="document.getElementById('versionFile').click()">
+                        <div class="upload-zone" onclick="handleUploadZoneClick(event)">
                             <input type="file" id="versionFile" name="file" accept="image/*" style="display: none;">
                             <div id="version-upload-content">
                                 <i class="fas fa-plus-circle fa-2x text-muted mb-2"></i>
@@ -75,7 +75,7 @@
                             <div id="version-preview" class="d-none">
                                 <img id="version-preview-image" src="" alt="Preview" style="max-height: 200px; border-radius: 8px;">
                                 <div id="version-file-info" class="mt-2"></div>
-                                <button type="submit" class="btn btn-primary mt-2">
+                                <button type="submit" class="btn btn-primary mt-2" onclick="event.stopPropagation()">
                                     <i class="fas fa-upload me-2"></i>Upload Version
                                 </button>
                             </div>
@@ -169,6 +169,8 @@
                                             data-version-number="{{ version.version_number }}"
                                             data-uploader="{{ version.uploader.username }}"
                                             data-upload-date="{{ version.uploaded_at.strftime('%m/%d/%Y %H:%M') }}"
+                                            data-is-current="{{ version.is_current }}"
+                                            data-can-write="{{ has_collection_permission(current_user, collection, 'write') }}"
                                             title="View Version">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -227,6 +229,10 @@
                 <a id="modal-download-link" href="#" class="btn btn-outline-primary" download>
                     <i class="fas fa-download me-2"></i>Download
                 </a>
+                <a id="modal-restore-link" href="#" class="btn btn-success d-none" 
+                   onclick="return confirm('Restore this version as the current version? This will create a new version with this data.')">
+                    <i class="fas fa-undo me-2"></i>Set as Current
+                </a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-2"></i>Close
                 </button>
@@ -236,6 +242,15 @@
 </div>
 
 <script>
+// Handle upload zone click
+function handleUploadZoneClick(event) {
+    // Don't trigger file input if clicking on the upload button or other interactive elements
+    if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+        return;
+    }
+    document.getElementById('versionFile').click();
+}
+
 // Handle version modal
 document.addEventListener('DOMContentLoaded', function() {
     const versionModal = document.getElementById('versionModal');
@@ -255,6 +270,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const versionNumber = button.getAttribute('data-version-number');
         const uploader = button.getAttribute('data-uploader');
         const uploadDate = button.getAttribute('data-upload-date');
+        const isCurrent = button.getAttribute('data-is-current') === 'True';
+        const canWrite = button.getAttribute('data-can-write') === 'True';
         
         // Update modal title and info
         modalVersionTitle.textContent = `Version ${versionNumber}`;
@@ -264,6 +281,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set download link
         modalDownloadLink.href = `{{ url_for('images.serve_version', version_id=0) }}`.replace('/0/', `/${versionId}/`);
         modalDownloadLink.download = `{{ image.filename }}_v${versionNumber}`;
+        
+        // Show/hide restore button based on permissions and current status
+        const modalRestoreLink = document.getElementById('modal-restore-link');
+        if (!isCurrent && canWrite) {
+            modalRestoreLink.href = `{{ url_for('images.restore_version', version_id=0) }}`.replace('/0/', `/${versionId}/`);
+            modalRestoreLink.classList.remove('d-none');
+        } else {
+            modalRestoreLink.classList.add('d-none');
+        }
         
         // Reset modal state
         modalLoading.classList.remove('d-none');
