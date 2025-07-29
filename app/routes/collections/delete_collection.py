@@ -1,7 +1,8 @@
 from flask import redirect, url_for, flash
 from flask_login import login_required, current_user
 from ... import db
-from ...models.collection import Collection
+from ...models.collection import Collection, CollectionPermission
+from ...models.invitation import CollectionInvitation
 from ...utils.helpers import has_collection_permission
 
 
@@ -20,10 +21,23 @@ def delete_collection(id):
         flash('You do not have permission to delete this collection.')
         return redirect(url_for('main.dashboard'))
     
-    db.session.delete(collection)
-    db.session.commit()
+    try:
+        # Delete related records first to avoid foreign key constraint issues
+        # Delete collection permissions
+        CollectionPermission.query.filter_by(collection_id=collection.id).delete()
+        
+        # Delete collection invitations
+        CollectionInvitation.query.filter_by(collection_id=collection.id).delete()
+        
+        # Delete the collection itself (images will be cascade deleted)
+        db.session.delete(collection)
+        db.session.commit()
+        
+        flash('Collection deleted successfully!')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting collection: {str(e)}')
     
-    flash('Collection deleted successfully!')
     return redirect(url_for('main.dashboard'))
 
 
