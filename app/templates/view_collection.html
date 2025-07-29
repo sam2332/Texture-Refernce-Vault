@@ -104,16 +104,14 @@
                         {% for image in images %}
                         <tr>
                             <td>
-                                {% if image.current_filepath %}
                                 <img src="{{ url_for('images.serve_image', id=image.id) }}" 
                                      alt="{{ image.filename }}" 
-                                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
-                                {% else %}
+                                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                 <div class="bg-light d-flex align-items-center justify-content-center" 
-                                     style="width: 60px; height: 60px; border-radius: 8px;">
-                                    <i class="fas fa-image text-muted"></i>
+                                     style="width: 60px; height: 60px; border-radius: 8px; display: none;">
+                                    <i class="fas fa-exclamation-triangle text-warning"></i>
                                 </div>
-                                {% endif %}
                             </td>
                             <td>
                                 <strong>{{ image.filename }}</strong>

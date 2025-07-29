@@ -9,43 +9,6 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-5">
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="stats-number">{{ users|length }}</div>
-                <div>Total Users</div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="stats-number">{{ collections|length }}</div>
-                <div>Total Collections</div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="stats-number">
-                    {% set total_images = 0 %}
-                    {% for collection in collections %}
-                        {% set total_images = total_images + collection.images|length %}
-                    {% endfor %}
-                    {{ total_images }}
-                </div>
-                <div>Total Images</div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="stats-number">
-                    {% set admin_count = users|selectattr('is_admin')|list|length %}
-                    {{ admin_count }}
-                </div>
-                <div>Admin Users</div>
-            </div>
-        </div>
-    </div>
-
     <!-- Users Management -->
     <div class="card mb-4">
         <div class="card-header">

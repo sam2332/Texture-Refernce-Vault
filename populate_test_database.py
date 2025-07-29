@@ -450,11 +450,27 @@ class DatabasePopulator:
                 print(f"\n🔄 Processing user {user_idx}/{len(self.users)}")
                 print(f"📈 Collections created so far: {collections_created}")
                 
-            # Vary collections per user
-            if user.is_admin:
-                num_collections = random.randint(max_per_user * 2, max_per_user * 4)
+            # Calculate remaining collections and users to ensure fair distribution
+            remaining_collections = collections_needed - collections_created
+            remaining_users = len(self.users) - user_idx
+            
+            if remaining_users <= 0:
+                break
+                
+            # Ensure each remaining user gets at least min_per_user collections
+            max_for_this_user = min(
+                remaining_collections - (remaining_users - 1) * min_per_user,
+                max_per_user * (2 if user.is_admin else 1)
+            )
+            min_for_this_user = min(min_per_user, remaining_collections)
+            
+            # Vary collections per user with better distribution
+            if max_for_this_user > min_for_this_user:
+                num_collections = random.randint(min_for_this_user, max_for_this_user)
             else:
-                num_collections = random.randint(min_per_user, max(min_per_user, target_per_user + 2))
+                num_collections = min_for_this_user
+            
+            print(f"👤 User {user.username}: planning {num_collections} collections (remaining: {remaining_collections})")
             
             user_collections_created = 0
             for _ in range(num_collections):
@@ -779,6 +795,10 @@ class DatabasePopulator:
                         data=image_data
                     )
                     
+                    # Update image's current_filepath if this is the current version
+                    if version_num == num_versions:
+                        image.current_filepath = f"uploads/{version_filename}"
+                    
                     current_batch.append(version)
                     total_versions += 1
                     self.progress.update_progress()
@@ -999,12 +1019,12 @@ def main():
         
         # Configuration - adjust these numbers as needed
         config = {
-            'num_users': 3,              # Total users to create
-            'total_collections': 8,      # Total collections across all users  
-            'min_images_per_collection': 15,   # Minimum images per collection
-            'max_images_per_collection': 25,   # Maximum images per collection
-            'min_versions_per_image': 2,       # Minimum versions per image
-            'max_versions_per_image': 8,       # Maximum versions per image
+            'num_users': 5,              # Total users to create
+            'total_collections': 15,     # Total collections across all users  
+            'min_images_per_collection': 3,    # Minimum images per collection
+            'max_images_per_collection': 8,    # Maximum images per collection
+            'min_versions_per_image': 1,       # Minimum versions per image
+            'max_versions_per_image': 3,       # Maximum versions per image
             'num_invitations': 4              # Number of invitations to create
         }
         

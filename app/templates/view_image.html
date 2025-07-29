@@ -47,17 +47,12 @@
                     </h5>
                 </div>
                 <div class="card-body text-center">
-                    {% if image.current_filepath %}
                     <img src="{{ url_for('images.serve_image', id=image.id) }}" 
                          alt="{{ image.filename }}" 
                          class="img-fluid image-preview"
-                         style="max-height: 500px;">
-                    {% else %}
-                    <div class="bg-light d-flex align-items-center justify-content-center" 
-                         style="height: 300px; border-radius: 10px;">
-                        <i class="fas fa-image fa-4x text-muted"></i>
-                    </div>
-                    {% endif %}
+                         style="max-height: 500px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    
                 </div>
             </div>
 
