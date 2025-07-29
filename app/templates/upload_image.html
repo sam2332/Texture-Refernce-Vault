@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-content">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('collections.view_collection', id=collection.id) }}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1><i class="fas fa-upload me-2"></i>Upload Image</h1>
+                    <p class="text-muted mb-0">Add a new texture reference to "{{ collection.name }}"</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        <div class="mb-4">
+                            <label for="original_path" class="form-label">Original File Path</label>
+                            <input type="text" class="form-control" id="original_path" name="original_path" 
+                                   placeholder="/path/to/original/texture.jpg">
+                            <div class="form-text">
+                                The original location where this texture should be published back to
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="file" class="form-label">Select Image File *</label>
+                            <div class="upload-zone" onclick="document.getElementById('file').click()">
+                                <input type="file" id="file" name="file" accept="image/*" required style="display: none;">
+                                <div id="upload-content">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <h5>Drop your image here or click to browse</h5>
+                                    <p class="text-muted">Supports: PNG, JPG, JPEG, GIF, BMP, TIFF, WebP</p>
+                                    <p class="text-muted">Maximum file size: 16MB</p>
+                                </div>
+                                <div id="file-preview" class="d-none">
+                                    <img id="preview-image" src="" alt="Preview" class="image-preview mb-3">
+                                    <div id="file-info"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                <i class="fas fa-upload me-2"></i>Upload Image
+                            </button>
+                            <a href="{{ url_for('collections.view_collection', id=collection.id) }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-image').src = e.target.result;
+            document.getElementById('file-info').innerHTML = `
+                <h6>${file.name}</h6>
+                <p class="text-muted">Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+            `;
+            document.getElementById('upload-content').classList.add('d-none');
+            document.getElementById('file-preview').classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Auto-fill original path when file is selected
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const originalPathInput = document.getElementById('original_path');
+    
+    if (file && !originalPathInput.value) {
+        // Suggest a path based on filename
+        originalPathInput.value = `/textures/${file.name}`;
+    }
+});
+</script>
+{% endblock %}

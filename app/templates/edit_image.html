@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-content">
+    <div class="d-flex align-items-center mb-4">
+        <a href="{{ url_for('images.view_image', id=image.id) }}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1><i class="fas fa-edit me-2"></i>Edit Image: {{ image.filename }}</h1>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Image Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="filename" class="form-label">Filename</label>
+                            <input type="text" class="form-control" id="filename" name="filename" 
+                                   value="{{ image.filename }}" required>
+                            <div class="form-text">The display name for this image.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="original_filepath" class="form-label">Original File Path</label>
+                            <input type="text" class="form-control" id="original_filepath" name="original_filepath" 
+                                   value="{{ image.original_filepath or '' }}" placeholder="/path/to/original/file.jpg">
+                            <div class="form-text">The original location where this image should be published.</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Dimensions</label>
+                                    <input type="text" class="form-control" 
+                                           value="{% if image.width and image.height %}{{ image.width }} × {{ image.height }} pixels{% else %}Unknown{% endif %}" 
+                                           readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">File Size</label>
+                                    <input type="text" class="form-control" 
+                                           value="{% if image.file_size %}{{ (image.file_size / 1024 / 1024) | round(2) }} MB{% else %}Unknown{% endif %}" 
+                                           readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Uploaded By</label>
+                                    <input type="text" class="form-control" value="{{ image.uploader.username }}" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Upload Date</label>
+                                    <input type="text" class="form-control" 
+                                           value="{{ image.created_at.strftime('%Y-%m-%d %H:%M:%S') }}" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       {% if image.is_published %}checked{% endif %} disabled>
+                                <label class="form-check-label">
+                                    Published Status
+                                </label>
+                                <div class="form-text">
+                                    {% if image.is_published %}
+                                        This image has been published to its original location.
+                                    {% else %}
+                                        This image has not been published yet.
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('images.view_image', id=image.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Image Preview -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Current Preview</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if image.current_filepath %}
+                    <img src="{{ url_for('images.serve_image', id=image.id) }}" 
+                         alt="{{ image.filename }}" 
+                         class="img-fluid image-preview"
+                         style="max-height: 300px; border-radius: 10px;">
+                    {% else %}
+                    <div class="bg-light d-flex align-items-center justify-content-center" 
+                         style="height: 200px; border-radius: 10px;">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('images.view_image', id=image.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-2"></i>View Details
+                        </a>
+                        {% if has_collection_permission(current_user, collection, 'write') and not image.is_published %}
+                        <a href="{{ url_for('images.publish_image', id=image.id) }}" 
+                           class="btn btn-outline-success btn-sm"
+                           onclick="return confirm('Publish this image to {{ image.original_filepath }}?')">
+                            <i class="fas fa-upload me-2"></i>Publish Image
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('collections.view_collection', id=collection.id) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-folder me-2"></i>Back to Collection
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
